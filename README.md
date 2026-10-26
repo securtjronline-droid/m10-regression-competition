@@ -1,3 +1,4 @@
+https://securtjronline-droid.github.io/m10-regression-competition/
 # The data
 
 Three real health datasets from the CDC's National Health and Nutrition Examination Survey (NHANES). One row = one person.
