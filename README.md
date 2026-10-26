@@ -1,28 +1,42 @@
-# Explain the Model
+# The data
 
-**App:** _paste your public app link here_
+Three real health datasets from the CDC's National Health and Nutrition Examination Survey (NHANES). One row = one person.
+- `row_id` is a row number.
+- `split` says whether the row is **train** (80%, used to fit the models) or **validation** (20%, used to check them and to choose when boosting stops).
+- These describe this survey sample, not the whole US population.
 
-| Section | Direct link | My viewer should walk away knowing… |
+## `glucose.csv`: fasting glucose (2,397 adults, NHANES 2017–2018)
+| Column | Meaning | Units |
 |---|---|---|
-| Push & Pull (linear regression) | _link_ | _one sentence_ |
-| Wisdom of the Forest (random forest) | _link_ | _one sentence_ |
-| One Correction at a Time (gradient boosting) | _link_ | _one sentence_ |
+| `hba1c` | HbA1c: average blood sugar over about 3 months | % |
+| `age` | Age (80 means 80 or older) | years |
+| `bmi` | Body mass index | kg/m² |
+| `waist_cm` | Waist circumference | cm |
+| `female` | 1 = female, 0 = male | 0/1 |
+| `fasting_glucose` | **Target:** blood sugar after fasting | mg/dL |
 
-An app that explains three regression models to an anonymous visitor who knows about machine learning and regression, but not how these algorithms work. Datasets: NHANES fasting glucose, blood pressure and lung function.
+## `sbp.csv`: systolic blood pressure (4,370 adults, NHANES 2017–2018)
+| Column | Meaning | Units |
+|---|---|---|
+| `age` | Age (80 means 80 or older) | years |
+| `bmi` | Body mass index | kg/m² |
+| `waist_cm` | Waist circumference | cm |
+| `female` | 1 = female, 0 = male | 0/1 |
+| `income_poverty_ratio` | Family income ÷ the poverty line (5 means 5 or more) | ratio |
+| `eth_mexican_american`, `eth_other_hispanic`, `eth_nh_black`, `eth_nh_asian`, `eth_other_multiracial` | Race/ethnicity as 0/1 columns. All zeros = **Non-Hispanic White** (the reference group) | 0/1 |
+| `systolic_bp` | **Target:** systolic blood pressure, mean of up to 3 readings | mmHg |
 
-Submit the link to **this repository** on Canvas. Reviewers open the app link above.
+## `fev1.csv`: lung function (5,820 people aged 6–79, NHANES 2011–2012)
+| Column | Meaning | Units |
+|---|---|---|
+| `age` | Age | years |
+| `female` | 1 = female, 0 = male | 0/1 |
+| `bmi` | Body mass index | kg/m² |
+| `income_poverty_ratio` | Family income ÷ the poverty line (5 means 5 or more) | ratio |
+| `fev1` | **Target:** FEV₁, air blown out in the first second | mL |
 
-## What's here
-| File | What it is |
-|---|---|
-| `AGENT_BRIEF.md` | Rules for your AI coding agent (have it read this first) |
-| `SETUP.md` | How to run and publish (GitHub Pages or Streamlit) |
-| `check.md` | Numbers your finished app must still show |
-| `index.html`, `app.js`, `m10.js` | GitHub Pages route |
-| `streamlit_app.py`, `m10.py`, `requirements.txt` | Streamlit route |
-| `outputs/` | Reference model outputs (field guide: `outputs/SCHEMA.md`) |
-| `data/` | The three datasets and the data dictionary |
+Height is left out on purpose, so the models have to learn how lung size changes with age.
 
-## Run locally
-- GitHub Pages route: `python -m http.server 8000`, then open <http://localhost:8000>
-- Streamlit route: `uv run --with streamlit,pandas,numpy streamlit run streamlit_app.py`
+**Sources:**
+- CDC/NCHS, NHANES 2017–2018 and 2011–2012 public-use files.
+- Prepared with the regression-app's `pipeline/datasets.py`. `manifest.json` records the source commit, versions and row counts.
