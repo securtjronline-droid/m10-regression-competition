@@ -38,7 +38,8 @@ async function render() {
   await draw(b, person);
 }
 
-const starterNote = (text) => `<p class="starter">Starter display: ${text} Replace it with your own explainer.</p>`;
+const explainer = (title, text) => `<div class="lesson"><strong>${title}</strong><p>${text}</p></div>`;
+const bars = (items, unit) => { const max = Math.max(1,...items.map(x=>Math.abs(x.value))); return `<div class="bars">${items.map(x=>`<div class="barrow"><span>${x.label}</span><div class="track"><div class="bar ${x.value>=0?'positive':'negative'}" style="width:${Math.max(1,Math.abs(x.value)/max*100)}%"></div></div><b class="${x.value>=0?'up':'down'}">${signed(x.value)} ${unit}</b></div>`).join('')}</div>`; };
 const featureLabel = (b, name) => (b.features.find((f) => f.name === name) || { label: name }).label;
 
 // ---- Push & Pull -------------------------------------------------------------
@@ -55,7 +56,10 @@ function renderLinear(b) {
   });
   $("section").innerHTML = `
     <h2>Push &amp; Pull: which features push the prediction up or down?</h2>
-    ${starterNote("a plain table of pushes.")}
+    ${explainer("Build the prediction", "Start with the prediction for an average training participant. Every feature adds a signed push: positive moves the estimate up; negative moves it down. Change an input to see its push change.")}
+    <div class="hero"><span>Starting point <b>${fmt(ex.baseline)} ${u}</b></span><span>Final prediction <b>${fmt(ex.prediction)} ${u}</b></span></div>
+    <h3>Which features move this person's prediction?</h3>
+    ${bars(Object.entries(ex.groupedPushes).map(([name,value])=>({label:groups.find(g=>g.name===name)?.label || featureLabel(b,name),value})),u)}
     <div class="inputs">
       ${numeric.map((f) => {
         const s = b.feature_stats[f.name];
@@ -70,7 +74,7 @@ function renderLinear(b) {
       ${rows.join("")}
       <tr><th>Prediction</th><th class="num">${fmt(ex.prediction)} ${u}</th></tr>
     </table>
-    <p class="note">Each push = coefficient × (this value − training average). Starting point + all pushes = prediction.
+    <p class="note">A coefficient is the change per one unit of a feature; a push is that coefficient multiplied by this person’s difference from the training average. Starting point + all pushes = prediction.
       Categories (${groups.map((g) => g.label.toLowerCase()).join(", ")}) are compared with the training mix; the model's reference
       group is ${groups.map((g) => g.reference).join(" / ")}. These are associations in the data, not causes.</p>`;
   document.querySelectorAll("[data-f]").forEach((el) =>
@@ -88,11 +92,14 @@ function renderForest(b, person) {
   const n = Number(state.nTrees || 10);
   $("section").innerHTML = `
     <h2>Wisdom of the Forest: how do ${rf.n_trees} trees combine?</h2>
-    ${starterNote("a list of tree guesses and their average.")}
+    ${explainer("A crowd of different trees", "Each tree makes its own guess. The forest combines all 100 guesses by taking their arithmetic average. Move the slider to watch a partial forest approach the full prediction.")}
     <p>${person.label} (${person.description}). Observed: ${fmt(person.observed)} ${u}.</p>
-    <p>First 10 trees' guesses: ${trees.slice(0, 10).map((t) => fmt(t)).join(", ")} ${u}</p>
+
     <label>Trees included: <input id="ntrees" type="range" min="1" max="${rf.n_trees}" value="${n}"> <span id="ntrees-value">${n}</span></label>
     <div id="forest-results"></div>
+    <h3>First 10 individual tree guesses</h3>
+    ${bars(trees.slice(0,10).map((value,i)=>({label:`Tree ${i+1}`,value:value - rf.people[person.id].prediction})),u)}
+    <p class="note">Bars show each tree’s difference from the full forest average, not its absolute prediction.</p>
     <p class="note">Trees differ because each one learns from a different bootstrap sample (about
       ${Math.round((100 * rf.bootstrap_unique_training_rows.reduce((a, c) => a + c, 0)) / rf.bootstrap_unique_training_rows.length / rf.n_training_rows)}%
       of the training people, some repeated) and tries only ${rf.features_tried_per_split} of ${rf.n_features} features at each split.
@@ -114,13 +121,14 @@ function renderBoosting(b, person) {
   const u = b.units;
   const gb = b.boosting;
   const p = gb.people[person.id];
-  const r = Number(state.round ?? 1);
+  const r = Math.min(p.corrections.length, Number(state.round ?? 1));
   $("section").innerHTML = `
     <h2>One Correction at a Time: how does each tree improve the model?</h2>
-    ${starterNote("a slider, three numbers and a plain error chart.")}
+    ${explainer("Small corrections, one round at a time", "Round 0 begins at the average training outcome. Each next tree learns from the remaining training errors and adds a small, already-scaled correction. The best stopping round is selected by validation RMSE, not training RMSE.")}
     <p>${person.label} (${person.description}). Observed: ${fmt(person.observed)} ${u}.</p>
     <label>Round: <input id="round" type="range" min="0" max="${p.corrections.length}" value="${r}"> <span id="round-value">${r}</span></label>
     <div id="boosting-results"></div>
+    <p class="note">The lower the RMSE, the better the average predictive fit on that split. The chart compares training (grey) and validation (blue) error; the dot marks the lowest validation error.</p>
     <p class="note">Each new tree is fitted to the training errors (residuals) left by the rounds before it.
       The stopping round is chosen with validation data, so its error is not an independent test result.</p>`;
   const update = (k) => {
